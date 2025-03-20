@@ -1,5 +1,5 @@
-
 import { Table, Reservation, OccupancyGroup, OccupancyEntry } from "@/types";
+import Papa from "papaparse";
 
 export const RESTAURANT_IDS = [
   "restaurante-saona-blasco-ibanez",
@@ -24,42 +24,47 @@ export const CONFIRMED_RESERVATION_STATUSES = [
 export const MEAL_SHIFTS = ["Comida", "Cena"];
 
 export function parseCsv(csvString: string): any[] {
-  const lines = csvString.split(/\r?\n/);
-  const headers = lines[0].split(',');
-  
-  return lines.slice(1).map(line => {
-    if (!line.trim()) return null;
-    
-    const values = line.split(',');
-    const obj: Record<string, any> = {};
-    
-    headers.forEach((header, i) => {
-      obj[header.trim()] = values[i] ? values[i].trim() : '';
-    });
-    
-    return obj;
-  }).filter(Boolean);
+  const result = Papa.parse(csvString, {
+    header: true,
+    skipEmptyLines: true,
+    dynamicTyping: false,
+    trimHeaders: true
+  });
+
+  if (result.errors.length > 0) {
+    console.error("CSV Parsing errors:", result.errors);
+  }
+
+  return result.data;
 }
 
 export function parseTables(tableString: string): number[] {
   if (!tableString) return [];
-  
+
   try {
-    // Check if it's a comma-separated list
-    if (tableString.includes(',')) {
+    if (typeof tableString === 'string') {
       return tableString.split(',')
-        .map(part => parseInt(part.trim(), 10))
-        .filter(num => !isNaN(num));
+        .map(part => part.trim())
+        .filter(part => /^\d+$/.test(part))
+        .map(part => parseInt(part, 10));
+    } else if (typeof tableString === 'number' && !isNaN(tableString)) {
+      return [tableString];
     }
-    
-    // Check if it's a single number
-    const num = parseInt(tableString.trim(), 10);
-    return isNaN(num) ? [] : [num];
   } catch (e) {
     console.error("Error parsing table IDs:", e);
-    return [];
   }
+
+  return [];
 }
+
+const pythonToJsJson = (pythonJson: string): string => {
+  return pythonJson
+    .replace(/: None/g, ': null')
+    .replace(/None,/g, 'null,')
+    .replace(/: True/g, ': true')
+    .replace(/: False/g, ': false')
+    .replace(/'/g, '"');
+};
 
 export function prepareSimulationData(
   mapData: any[],
@@ -73,27 +78,24 @@ export function prepareSimulationData(
   endTime: number;
   shiftStart: Date;
 } {
-  // Filter data by the selected options
   const filteredReservations = reservationsData.filter(
-    r => r.date === options.date &&
-         r.meal_shift === options.mealShift &&
-         r.restaurant === options.restaurantId &&
-         CONFIRMED_RESERVATION_STATUSES.includes(r.status_long)
+     r => r.date === options.date && r.meal_shift === options.mealShift && r.restaurant === options.restaurantId && CONFIRMED_RESERVATION_STATUSES.includes(r.status_long)
   );
-  
+
+  const mealShiftForMap = options.mealShift === "Comida" ? 1 : 2;
+
   const filteredMapData = mapData.filter(
-    m => m.restaurant_name === options.restaurantId && m.date === options.date
+    m => m.restaurant_name === options.restaurantId && m.date === options.date && m.meal == mealShiftForMap
   );
 
   if (filteredReservations.length === 0 || filteredMapData.length === 0) {
     throw new Error("No data available for the selected criteria");
   }
 
-  // Process tables from map data
   const tables: Record<number, Table> = {};
   filteredMapData.forEach(row => {
     try {
-      const tablesData = JSON.parse(row.tables.replace(/'/g, '"'));
+      const tablesData = JSON.parse(pythonToJsJson(row.tables));
       tablesData.forEach((table: any) => {
         const tableId = parseInt(table.id_table, 10);
         tables[tableId] = {
@@ -108,7 +110,6 @@ export function prepareSimulationData(
     }
   });
 
-  // Calculate the minimum start time for the shift
   const timeToMinutes = (timeStr: string): number => {
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours * 60 + minutes;
@@ -117,24 +118,18 @@ export function prepareSimulationData(
   const arrivalTimes = filteredReservations.map(r => timeToMinutes(r.time));
   const minTime = Math.min(...arrivalTimes);
 
-  // Process reservations
   const reservations: Reservation[] = filteredReservations.map(row => {
     const arrivalTime = timeToMinutes(row.time) - minTime;
     const tableIds = parseTables(row.tables);
     const partySize = parseInt(row.for, 10);
-    const duration = parseInt(row.duration, 10) || 90; // Default duration of 90 minutes if not specified
-    
-    // Parse creation datetime
+    const duration = parseInt(row.duration, 10) || 90;
     let creationDatetime = new Date(`${row.date_add} ${row.time_add}`);
-    
-    // Parse reservation datetime
     const reservationDatetime = new Date(`${row.date} ${row.time}`);
-    
-    // Ensure creation time is not after reservation time
+
     if (creationDatetime > reservationDatetime) {
-      creationDatetime = new Date(reservationDatetime.getTime() - 1000); // 1 second before
+      creationDatetime = new Date(reservationDatetime.getTime() - 1000);
     }
-    
+
     return {
       arrival_time: arrivalTime,
       table_ids: tableIds,
@@ -145,14 +140,13 @@ export function prepareSimulationData(
     };
   });
 
-  // Simulate the reservation process to generate occupancy logs
   const shiftStart = new Date(`${options.date} 00:00:00`);
   shiftStart.setMinutes(minTime);
-  
+
   reservations.forEach(reservation => {
     const startTime = reservation.arrival_time;
     const endTime = startTime + reservation.duration;
-    
+
     reservation.table_ids.forEach(tableId => {
       if (tables[tableId]) {
         tables[tableId].occupancy_log.push({
@@ -165,13 +159,10 @@ export function prepareSimulationData(
     });
   });
 
-  // Group occupancy logs
   const occupancyGroupsMap = new Map<string, OccupancyGroup>();
-  
   Object.values(tables).forEach(table => {
     table.occupancy_log.forEach((log: OccupancyEntry) => {
       const key = `${log.start_time}-${log.end_time}-${log.creation_datetime.getTime()}-${log.reservation_datetime.getTime()}`;
-      
       if (!occupancyGroupsMap.has(key)) {
         occupancyGroupsMap.set(key, {
           table_ids: [table.table_id],
@@ -185,21 +176,14 @@ export function prepareSimulationData(
       }
     });
   });
-  
-  // Convert map to array and calculate advance times
+
   const occupancyGroups = Array.from(occupancyGroupsMap.values());
-  
   occupancyGroups.forEach(group => {
-    // Calculate advance in minutes
     group.advance = (group.reservation.getTime() - group.creation.getTime()) / (60 * 1000);
-    // Calculate creation time relative to shift start
     group.creation_rel = (group.creation.getTime() - shiftStart.getTime()) / (60 * 1000);
   });
-  
-  // Sort by creation time
   occupancyGroups.sort((a, b) => a.creation.getTime() - b.creation.getTime());
-  
-  // Calculate end time for the simulation
+
   const maxArrivalTime = Math.max(...reservations.map(r => r.arrival_time));
   const maxDuration = Math.max(...reservations.map(r => r.duration));
   const endTime = maxArrivalTime + maxDuration + 10;
@@ -216,10 +200,8 @@ export function prepareSimulationData(
 
 export const formatTime = (minutes: number, shiftStart?: Date): string => {
   if (!shiftStart) return "00:00";
-  
   const date = new Date(shiftStart);
   date.setMinutes(date.getMinutes() + minutes);
-  
   return date.toTimeString().substring(0, 5);
 };
 
