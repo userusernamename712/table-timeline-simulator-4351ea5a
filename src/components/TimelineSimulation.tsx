@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -14,6 +13,7 @@ import {
   RotateCcw,
   ChevronRightCircle,
   Settings,
+  Utensils,
 } from "lucide-react";
 import {
   Select,
@@ -58,7 +58,6 @@ const TimelineSimulation = ({
   const lastTimeRef = useRef<number>(0);
   const timelineRef = useRef<HTMLDivElement>(null);
 
-  // Update tables when props change
   useEffect(() => {
     setState((prev) => ({
       ...prev,
@@ -69,7 +68,6 @@ const TimelineSimulation = ({
     }));
   }, [tables, occupancyGroups, endTime, shiftStart]);
 
-  // Setup animation loop
   useEffect(() => {
     if (state.isPlaying) {
       lastTimeRef.current = performance.now();
@@ -92,7 +90,6 @@ const TimelineSimulation = ({
     setState((prev) => {
       const newTime = prev.currentTime + (elapsed * prev.playbackSpeed) / 1000;
 
-      // Stop when we reach the end
       if (newTime >= prev.endTime) {
         return { ...prev, currentTime: prev.endTime, isPlaying: false };
       }
@@ -117,7 +114,6 @@ const TimelineSimulation = ({
 
   const handleSkip = () => {
     setState((prev) => {
-      // Find the next reservation start time after current time
       const nextTime = prev.occupancyGroups.find(
         (g) => g.start > prev.currentTime
       )?.start;
@@ -148,16 +144,13 @@ const TimelineSimulation = ({
     }));
   };
 
-  // Filter tables based on current selection
   const filteredTables = Object.values(state.tables).filter((table) => {
     if (state.tableFilter === "All") return true;
     return table.max_capacity === parseInt(state.tableFilter);
   });
 
-  // Sort tables by ID for consistent display
   filteredTables.sort((a, b) => a.table_id - b.table_id);
 
-  // Calculate visible reservations for each table
   const getVisibleReservations = (tableId: number) => {
     return state.occupancyGroups.filter(
       (group) =>
@@ -281,7 +274,6 @@ const TimelineSimulation = ({
               <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 py-2 border-b mb-2 flex">
                 <div className="w-[150px] font-medium">Table</div>
                 <div className="flex-1 relative">
-                  {/* Time indicators */}
                   {Array.from({ length: Math.ceil(state.endTime / 60) + 1 }).map(
                     (_, i) => (
                       <div
@@ -294,7 +286,6 @@ const TimelineSimulation = ({
                     )
                   )}
                   
-                  {/* Current time indicator */}
                   <div
                     className="absolute top-0 h-full border-l-2 border-primary z-10 transition-all duration-100"
                     style={{
@@ -376,7 +367,7 @@ const TimelineSimulation = ({
           ) : (
             <div className="glass-card border-border/30 shadow-md p-8 flex flex-col items-center justify-center h-[300px] text-center">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Table className="w-8 h-8 text-primary" />
+                <Utensils className="w-8 h-8 text-primary" />
               </div>
               <h3 className="font-medium text-lg mb-2">No Reservation Selected</h3>
               <p className="text-muted-foreground text-sm max-w-xs">
