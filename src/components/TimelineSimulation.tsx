@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -6,7 +7,7 @@ import {
   SimulationState,
   OccupancyGroup,
 } from "@/types";
-import { formatTime } from "@/utils/simulationUtils";
+import { formatTime, formatDateTime } from "@/utils/simulationUtils";
 import {
   PlayCircle,
   PauseCircle,
@@ -35,6 +36,9 @@ interface TimelineSimulationProps {
   occupancyGroups: OccupancyGroup[];
   endTime: number;
   shiftStart?: Date;
+  firstCreationTime?: number;
+  lastReservationTime?: number;
+  onReset: () => void;
 }
 
 const TimelineSimulation = ({
@@ -42,13 +46,16 @@ const TimelineSimulation = ({
   occupancyGroups,
   endTime,
   shiftStart,
+  firstCreationTime = 0,
+  lastReservationTime,
+  onReset,
 }: TimelineSimulationProps) => {
   const [state, setState] = useState<SimulationState>({
     tables,
     reservations: [],
     occupancyGroups,
-    currentTime: 0,
-    endTime,
+    currentTime: firstCreationTime || 0,
+    endTime: lastReservationTime || endTime,
     isPlaying: false,
     playbackSpeed: 1,
     tableFilter: "All",
@@ -63,10 +70,11 @@ const TimelineSimulation = ({
       ...prev,
       tables,
       occupancyGroups,
-      endTime,
+      endTime: lastReservationTime || endTime,
+      currentTime: firstCreationTime || 0,
       shiftStart,
     }));
-  }, [tables, occupancyGroups, endTime, shiftStart]);
+  }, [tables, occupancyGroups, endTime, shiftStart, firstCreationTime, lastReservationTime]);
 
   useEffect(() => {
     if (state.isPlaying) {
@@ -105,7 +113,11 @@ const TimelineSimulation = ({
   };
 
   const handleReset = () => {
-    setState((prev) => ({ ...prev, currentTime: 0, isPlaying: false }));
+    setState((prev) => ({ ...prev, currentTime: firstCreationTime || 0, isPlaying: false }));
+  };
+
+  const handleFullReset = () => {
+    onReset();
   };
 
   const handleSliderChange = (value: number[]) => {
@@ -115,8 +127,8 @@ const TimelineSimulation = ({
   const handleSkip = () => {
     setState((prev) => {
       const nextTime = prev.occupancyGroups.find(
-        (g) => g.start > prev.currentTime
-      )?.start;
+        (g) => g.creation_rel !== undefined && g.creation_rel > prev.currentTime
+      )?.creation_rel;
 
       if (nextTime !== undefined) {
         return { ...prev, currentTime: nextTime };
@@ -251,7 +263,7 @@ const TimelineSimulation = ({
           </div>
           
           <div className="text-sm text-muted-foreground">
-            Simulation progress
+            Simulation showing reservations created up to this time
           </div>
         </div>
         
@@ -259,6 +271,7 @@ const TimelineSimulation = ({
           className="mt-2"
           value={[state.currentTime]}
           max={state.endTime}
+          min={firstCreationTime || 0}
           step={1}
           onValueChange={handleSliderChange}
         />
@@ -274,12 +287,12 @@ const TimelineSimulation = ({
               <div className="sticky top-0 bg-white/80 backdrop-blur-sm z-10 px-4 py-2 border-b mb-2 flex">
                 <div className="w-[150px] font-medium">Table</div>
                 <div className="flex-1 relative">
-                  {Array.from({ length: Math.ceil(state.endTime / 60) + 1 }).map(
+                  {Array.from({ length: Math.ceil(endTime / 60) + 1 }).map(
                     (_, i) => (
                       <div
                         key={i}
                         className="absolute text-xs text-muted-foreground"
-                        style={{ left: `${(i * 60 * 100) / state.endTime}%` }}
+                        style={{ left: `${(i * 60 * 100) / endTime}%` }}
                       >
                         {formatTime(i * 60, shiftStart)}
                       </div>
@@ -289,7 +302,7 @@ const TimelineSimulation = ({
                   <div
                     className="absolute top-0 h-full border-l-2 border-primary z-10 transition-all duration-100"
                     style={{
-                      left: `${(state.currentTime * 100) / state.endTime}%`,
+                      left: `${(state.currentTime * 100) / endTime}%`,
                     }}
                   >
                     <div className="bg-primary text-white px-1 py-0.5 rounded text-xs whitespace-nowrap">
@@ -329,8 +342,8 @@ const TimelineSimulation = ({
                                     : ""
                                 }`}
                                 style={{
-                                  left: `${(reservation.start * 100) / state.endTime}%`,
-                                  width: `${(reservation.duration * 100) / state.endTime}%`,
+                                  left: `${(reservation.start * 100) / endTime}%`,
+                                  width: `${(reservation.duration * 100) / endTime}%`,
                                   backgroundColor: `hsl(${210 + (reservation.table_ids.length * 20)}, 100%, 70%)`,
                                 }}
                                 onClick={() => handleReservationClick(reservation)}
@@ -345,6 +358,7 @@ const TimelineSimulation = ({
                                 <div>Time: {formatTime(reservation.start, shiftStart)} - {formatTime(reservation.start + reservation.duration, shiftStart)}</div>
                                 <div>Duration: {reservation.duration} minutes</div>
                                 <div>Tables: {reservation.table_ids.join(", ")}</div>
+                                <div>Created: {formatDateTime(reservation.creation)}</div>
                               </div>
                             </TooltipContent>
                           </Tooltip>
@@ -373,6 +387,10 @@ const TimelineSimulation = ({
               <p className="text-muted-foreground text-sm max-w-xs">
                 Click on any reservation in the timeline to view its details
               </p>
+              <Button onClick={handleFullReset} variant="outline" className="mt-4">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                New Simulation
+              </Button>
             </div>
           )}
         </div>

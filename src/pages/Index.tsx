@@ -28,6 +28,7 @@ const Index = () => {
   
   const [simulationData, setSimulationData] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSimulation, setShowSimulation] = useState(false);
 
   const handleFileUploaded = (data: any[], fileType: "maps" | "reservations") => {
     setUploadedData((prev) => ({
@@ -66,17 +67,7 @@ const Index = () => {
   };
 
   const handleReset = () => {
-    setUploadedData({
-      reservations: null,
-      maps: null,
-    });
-    setSimulationOptions({
-      date: "",
-      mealShift: "Comida",
-      restaurantId: "restaurante-saona-blasco-ibanez",
-    });
-    setSelectedDate(undefined);
-    setSimulationData(null);
+    setShowSimulation(false);
   };
 
   const startSimulation = () => {
@@ -100,6 +91,7 @@ const Index = () => {
       );
       
       setSimulationData(data);
+      setShowSimulation(true);
       toast.success("Simulation data prepared successfully");
     } catch (error) {
       console.error("Error preparing simulation data:", error);
@@ -119,7 +111,7 @@ const Index = () => {
           </p>
         </div>
 
-        {!simulationData ? (
+        {!showSimulation ? (
           <div className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FileUpload
@@ -184,12 +176,17 @@ const Index = () => {
               </Button>
             </div>
             
-            <TimelineSimulation
-              tables={simulationData.tables}
-              occupancyGroups={simulationData.occupancyGroups}
-              endTime={simulationData.endTime}
-              shiftStart={simulationData.shiftStart}
-            />
+            {simulationData && (
+              <TimelineSimulation
+                tables={simulationData.tables}
+                occupancyGroups={simulationData.occupancyGroups}
+                endTime={simulationData.endTime}
+                shiftStart={simulationData.shiftStart}
+                firstCreationTime={simulationData.firstCreationTime}
+                lastReservationTime={simulationData.lastReservationTime}
+                onReset={handleReset}
+              />
+            )}
           </div>
         )}
       </div>

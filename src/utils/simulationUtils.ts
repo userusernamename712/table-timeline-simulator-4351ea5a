@@ -1,3 +1,4 @@
+
 import { Table, Reservation, OccupancyGroup, OccupancyEntry } from "@/types";
 import Papa from "papaparse";
 
@@ -77,6 +78,8 @@ export function prepareSimulationData(
   minTime: number;
   endTime: number;
   shiftStart: Date;
+  firstCreationTime: number;
+  lastReservationTime: number;
 } {
   const filteredReservations = reservationsData.filter(
      r => r.date === options.date && r.meal_shift === options.mealShift && r.restaurant === options.restaurantId && CONFIRMED_RESERVATION_STATUSES.includes(r.status_long)
@@ -183,6 +186,17 @@ export function prepareSimulationData(
     group.creation_rel = (group.creation.getTime() - shiftStart.getTime()) / (60 * 1000);
   });
   occupancyGroups.sort((a, b) => a.creation.getTime() - b.creation.getTime());
+  
+  // Find the earliest creation time and latest reservation time
+  const firstCreationTime = Math.min(...occupancyGroups.map(g => g.creation_rel || 0));
+  
+  // Calculating the last reservation time relative to shift start
+  const lastReservationTime = Math.max(
+    ...occupancyGroups.map(g => {
+      const reservationTimeRel = (g.reservation.getTime() - shiftStart.getTime()) / (60 * 1000);
+      return reservationTimeRel;
+    })
+  );
 
   const maxArrivalTime = Math.max(...reservations.map(r => r.arrival_time));
   const maxDuration = Math.max(...reservations.map(r => r.duration));
@@ -194,7 +208,9 @@ export function prepareSimulationData(
     occupancyGroups,
     minTime,
     endTime,
-    shiftStart
+    shiftStart,
+    firstCreationTime,
+    lastReservationTime
   };
 }
 

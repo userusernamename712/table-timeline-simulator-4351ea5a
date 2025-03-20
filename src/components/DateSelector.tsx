@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { MEAL_SHIFTS } from "@/utils/simulationUtils";
+import { useState } from "react";
 
 interface DateSelectorProps {
   date: Date | undefined;
@@ -30,6 +31,24 @@ const DateSelector = ({
   mealShift,
   onMealShiftChange,
 }: DateSelectorProps) => {
+  const [calendarYear, setCalendarYear] = useState<number>(date?.getFullYear() || new Date().getFullYear());
+  
+  // Generate array of years (5 years before and after current year)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  
+  const handleYearChange = (year: string) => {
+    const newYear = parseInt(year);
+    setCalendarYear(newYear);
+    
+    // If a date is already selected, update it to the new year
+    if (date) {
+      const newDate = new Date(date);
+      newDate.setFullYear(newYear);
+      onDateChange(newDate);
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-slide-up">
       <div>
@@ -54,12 +73,29 @@ const DateSelector = ({
             className="w-auto p-0 bg-white/90 backdrop-blur-lg border border-border/50"
             align="start"
           >
+            <div className="flex items-center justify-between p-2 border-b">
+              <span className="text-sm font-medium">Year</span>
+              <Select value={calendarYear.toString()} onValueChange={handleYearChange}>
+                <SelectTrigger className="h-8 w-[100px]">
+                  <SelectValue placeholder={calendarYear.toString()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Calendar
               mode="single"
               selected={date}
               onSelect={onDateChange}
+              month={date || new Date(calendarYear, 0)}
+              defaultMonth={new Date(calendarYear, 0)}
               initialFocus
-              className="rounded-md"
+              className="pointer-events-auto rounded-md"
             />
           </PopoverContent>
         </Popover>
