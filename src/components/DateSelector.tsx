@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { MEAL_SHIFTS } from "@/utils/simulationUtils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface DateSelectorProps {
   date: Date | undefined;
@@ -32,20 +32,33 @@ const DateSelector = ({
   onMealShiftChange,
 }: DateSelectorProps) => {
   const [calendarYear, setCalendarYear] = useState<number>(date?.getFullYear() || new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(date || new Date());
   
   // Generate array of years (5 years before and after current year)
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
   
+  // Update the calendar month when date changes
+  useEffect(() => {
+    if (date) {
+      setCalendarMonth(date);
+    }
+  }, [date]);
+
   const handleYearChange = (year: string) => {
     const newYear = parseInt(year);
     setCalendarYear(newYear);
     
+    // Update the calendar month with the new year
+    const newDate = new Date(calendarMonth);
+    newDate.setFullYear(newYear);
+    setCalendarMonth(newDate);
+    
     // If a date is already selected, update it to the new year
     if (date) {
-      const newDate = new Date(date);
-      newDate.setFullYear(newYear);
-      onDateChange(newDate);
+      const updatedDate = new Date(date);
+      updatedDate.setFullYear(newYear);
+      onDateChange(updatedDate);
     }
   };
 
@@ -92,10 +105,10 @@ const DateSelector = ({
               mode="single"
               selected={date}
               onSelect={onDateChange}
-              month={date || new Date(calendarYear, 0)}
-              defaultMonth={new Date(calendarYear, 0)}
+              month={calendarMonth}
+              onMonthChange={setCalendarMonth}
               initialFocus
-              className="pointer-events-auto rounded-md"
+              className="rounded-md pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
