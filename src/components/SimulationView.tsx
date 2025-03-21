@@ -1,8 +1,8 @@
 
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import TimelineSimulation from "@/components/TimelineSimulation";
 import { RotateCcw, Filter, Info } from "lucide-react";
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
