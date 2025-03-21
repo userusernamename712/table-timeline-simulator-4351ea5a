@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -39,6 +38,7 @@ interface TimelineSimulationProps {
   firstCreationTime?: number;
   lastReservationTime?: number;
   onReset: () => void;
+  highlightedReservations?: string[];
 }
 
 const TimelineSimulation = ({
@@ -49,6 +49,7 @@ const TimelineSimulation = ({
   firstCreationTime = 0,
   lastReservationTime,
   onReset,
+  highlightedReservations = [],
 }: TimelineSimulationProps) => {
   const [state, setState] = useState<SimulationState>({
     tables,
@@ -156,6 +157,12 @@ const TimelineSimulation = ({
     }));
   };
 
+  const isReservationHighlighted = (reservation: OccupancyGroup) => {
+    if (highlightedReservations.length === 0) return false;
+    const reservationKey = `${reservation.start}-${reservation.table_ids.join('-')}-${reservation.reservation.getTime()}`;
+    return highlightedReservations.includes(reservationKey);
+  };
+
   const filteredTables = Object.values(state.tables).filter((table) => {
     if (state.tableFilter === "All") return true;
     return table.max_capacity === parseInt(state.tableFilter);
@@ -184,7 +191,6 @@ const TimelineSimulation = ({
       minute: "2-digit",
     });
   };
-  
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
@@ -337,40 +343,47 @@ const TimelineSimulation = ({
                     </div>
                     
                     <div className="flex-1 relative min-h-[30px]">
-                      {visibleReservations.map((reservation) => (
-                        <TooltipProvider key={`${reservation.start}-${reservation.table_ids.join('-')}`}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className={`absolute h-6 rounded-md reservation-block ${
-                                  state.selectedReservation?.start === reservation.start &&
-                                  state.selectedReservation?.reservation.getTime() === reservation.reservation.getTime()
-                                    ? "ring-2 ring-primary"
-                                    : ""
-                                }`}
-                                style={{
-                                  left: `${(reservation.start * 100) / endTime}%`,
-                                  width: `${(reservation.duration * 100) / endTime}%`,
-                                  backgroundColor: `hsl(${210 + (reservation.table_ids.length * 20)}, 100%, 70%)`,
-                                }}
-                                onClick={() => handleReservationClick(reservation)}
-                              >
-                                <div className="px-2 text-xs truncate h-full flex items-center text-primary-foreground">
-                                  {formatTime(reservation.start, shiftStart)} - {formatTime(reservation.start + reservation.duration, shiftStart)}
+                      {visibleReservations.map((reservation) => {
+                        const isHighlighted = isReservationHighlighted(reservation);
+                        return (
+                          <TooltipProvider key={`${reservation.start}-${reservation.table_ids.join('-')}`}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={`absolute h-6 rounded-md reservation-block ${
+                                    state.selectedReservation?.start === reservation.start &&
+                                    state.selectedReservation?.reservation.getTime() === reservation.reservation.getTime()
+                                      ? "ring-2 ring-primary"
+                                      : ""
+                                  } ${
+                                    isHighlighted ? "ring-2 ring-blue-500" : ""
+                                  }`}
+                                  style={{
+                                    left: `${(reservation.start * 100) / endTime}%`,
+                                    width: `${(reservation.duration * 100) / endTime}%`,
+                                    backgroundColor: isHighlighted 
+                                      ? `hsl(210, 100%, 50%)`
+                                      : `hsl(${210 + (reservation.table_ids.length * 20)}, 100%, 70%)`,
+                                  }}
+                                  onClick={() => handleReservationClick(reservation)}
+                                >
+                                  <div className="px-2 text-xs truncate h-full flex items-center text-primary-foreground">
+                                    {formatTime(reservation.start, shiftStart)} - {formatTime(reservation.start + reservation.duration, shiftStart)}
+                                  </div>
                                 </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-white/90 backdrop-blur-md border border-border/50">
-                              <div className="text-xs">
-                                <div>Time: {formatTime(reservation.start, shiftStart)} - {formatTime(reservation.start + reservation.duration, shiftStart)}</div>
-                                <div>Duration: {reservation.duration} minutes</div>
-                                <div>Tables: {reservation.table_ids.join(", ")}</div>
-                                <div>Created: {formatDateTime(reservation.creation)}</div>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ))}
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-white/90 backdrop-blur-md border border-border/50">
+                                <div className="text-xs">
+                                  <div>Time: {formatTime(reservation.start, shiftStart)} - {formatTime(reservation.start + reservation.duration, shiftStart)}</div>
+                                  <div>Duration: {reservation.duration} minutes</div>
+                                  <div>Tables: {reservation.table_ids.join(", ")}</div>
+                                  <div>Created: {formatDateTime(reservation.creation)}</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })}
                     </div>
                   </div>
                 );
