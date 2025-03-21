@@ -2,6 +2,7 @@
 export interface Table {
   table_id: number;
   max_capacity: number;
+  min_capacity?: number;
   occupied: boolean;
   occupancy_log: OccupancyEntry[];
 }

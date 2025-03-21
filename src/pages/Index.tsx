@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import SimulationForm from "@/components/SimulationForm";
@@ -60,6 +59,14 @@ const Index = () => {
   };
 
   const handleStartSimulation = (data: any) => {
+    if (data && data.tables) {
+      Object.values(data.tables).forEach((table: any) => {
+        if (!table.min_capacity) {
+          table.min_capacity = table.max_capacity;
+        }
+      });
+    }
+    
     setSimulationData(data);
     setShowSimulation(true);
   };
