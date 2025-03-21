@@ -176,8 +176,15 @@ const TimelineSimulation = ({
     if (!shiftStart) return "Loading...";
     const currentDate = new Date(shiftStart);
     currentDate.setMinutes(currentDate.getMinutes() + state.currentTime);
-    return currentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return currentDate.toLocaleString([], {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
+  
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
