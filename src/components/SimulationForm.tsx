@@ -8,14 +8,15 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Play } from "lucide-react";
 import { format } from "date-fns";
-import { UploadedData, SimulationOptions } from "@/types";
+import { UploadedData, SimulationOptions, StoredFile } from "@/types";
 import { prepareSimulationData } from "@/utils/simulationUtils";
 
 interface SimulationFormProps {
   uploadedData: UploadedData;
   simulationOptions: SimulationOptions;
   selectedDate: Date | undefined;
-  onFileUploaded: (data: any[], fileType: "maps" | "reservations") => void;
+  onFileUploaded: (data: any[], fileType: "maps" | "reservations", fileInfo?: StoredFile) => void;
+  onRemoveFile: (fileType: "maps" | "reservations") => void;
   onDateChange: (date: Date | undefined) => void;
   onMealShiftChange: (shift: string) => void;
   onRestaurantChange: (id: string) => void;
@@ -27,6 +28,7 @@ const SimulationForm = ({
   simulationOptions,
   selectedDate,
   onFileUploaded,
+  onRemoveFile,
   onDateChange,
   onMealShiftChange,
   onRestaurantChange,
@@ -46,6 +48,7 @@ const SimulationForm = ({
     }
 
     setIsLoading(true);
+    const loadingToastId = toast.loading("Preparing simulation...");
 
     try {
       const data = prepareSimulationData(
@@ -55,13 +58,25 @@ const SimulationForm = ({
       );
       
       onStartSimulation(data);
-      toast.success("Simulation data prepared successfully");
+      toast.success("Simulation data prepared successfully", {
+        id: loadingToastId
+      });
     } catch (error) {
       console.error("Error preparing simulation data:", error);
-      toast.error("Error preparing simulation data. Please check your inputs.");
+      toast.error("Error preparing simulation data. Please check your inputs.", {
+        id: loadingToastId
+      });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRemoveMapsFile = () => {
+    onRemoveFile("maps");
+  };
+  
+  const handleRemoveReservationsFile = () => {
+    onRemoveFile("reservations");
   };
 
   return (
@@ -71,11 +86,15 @@ const SimulationForm = ({
           label="Upload Maps Data"
           fileType="maps"
           onFileUploaded={onFileUploaded}
+          storedFile={uploadedData.mapsFile}
+          onRemoveFile={handleRemoveMapsFile}
         />
         <FileUpload
           label="Upload Reservations Data"
           fileType="reservations"
           onFileUploaded={onFileUploaded}
+          storedFile={uploadedData.reservationsFile}
+          onRemoveFile={handleRemoveReservationsFile}
         />
       </div>
 

@@ -56,9 +56,18 @@ export interface SimulationState {
   tableFilter: string;
 }
 
+export interface StoredFile {
+  data: any[];
+  fileName: string;
+  rawContent: string;
+  lastUpdated: string;
+}
+
 export interface UploadedData {
   reservations: any[] | null;
   maps: any[] | null;
+  reservationsFile?: StoredFile;
+  mapsFile?: StoredFile;
 }
 
 export interface SimulationOptions {

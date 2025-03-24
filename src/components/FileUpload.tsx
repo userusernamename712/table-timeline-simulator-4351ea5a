@@ -1,20 +1,31 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Upload, FileText, Check } from "lucide-react";
+import { Upload, FileText, Check, Trash2 } from "lucide-react";
 import { parseCsv } from "@/utils/simulationUtils";
+import { StoredFile } from "@/types";
 
 interface FileUploadProps {
   label: string;
   fileType: "maps" | "reservations";
-  onFileUploaded: (data: any[], fileType: "maps" | "reservations") => void;
+  onFileUploaded: (data: any[], fileType: "maps" | "reservations", fileInfo?: StoredFile) => void;
+  storedFile?: StoredFile;
+  onRemoveFile?: () => void;
 }
 
-const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
+const FileUpload = ({ label, fileType, onFileUploaded, storedFile, onRemoveFile }: FileUploadProps) => {
   const [fileName, setFileName] = useState("");
   const [isUploaded, setIsUploaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Initialize from stored file if available
+  useEffect(() => {
+    if (storedFile) {
+      setFileName(storedFile.fileName);
+      setIsUploaded(true);
+    }
+  }, [storedFile]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,6 +38,9 @@ const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
     }
 
     setFileName(file.name);
+    
+    // Show loading toast
+    const loadingToastId = toast.loading(`Processing ${label}...`);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -35,21 +49,37 @@ const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
         const parsedData = parseCsv(csvData);
         
         if (parsedData.length === 0) {
-          toast.error("The file appears to be empty or invalid");
+          toast.error("The file appears to be empty or invalid", {
+            id: loadingToastId
+          });
           return;
         }
         
-        onFileUploaded(parsedData, fileType);
+        // Create file storage object
+        const fileInfo: StoredFile = {
+          data: parsedData,
+          fileName: file.name,
+          rawContent: csvData,
+          lastUpdated: new Date().toISOString()
+        };
+        
+        onFileUploaded(parsedData, fileType, fileInfo);
         setIsUploaded(true);
-        toast.success(`${label} file uploaded successfully`);
+        toast.success(`${label} file uploaded successfully`, {
+          id: loadingToastId
+        });
       } catch (error) {
         console.error("Error parsing CSV:", error);
-        toast.error("Error parsing the CSV file");
+        toast.error("Error parsing the CSV file", {
+          id: loadingToastId
+        });
       }
     };
     
     reader.onerror = () => {
-      toast.error("Error reading the file");
+      toast.error("Error reading the file", {
+        id: loadingToastId
+      });
     };
     
     reader.readAsText(file);
@@ -57,6 +87,15 @@ const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
 
   const handleUploadClick = () => {
     inputRef.current?.click();
+  };
+  
+  const handleRemoveFile = () => {
+    if (onRemoveFile) {
+      onRemoveFile();
+      setFileName("");
+      setIsUploaded(false);
+      toast.success(`${label} file removed`);
+    }
   };
 
   return (
@@ -82,9 +121,16 @@ const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
           <div className="text-center">
             <h3 className="font-medium text-lg">{label}</h3>
             {fileName ? (
-              <p className="text-sm text-muted-foreground truncate max-w-xs">
-                {fileName}
-              </p>
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-muted-foreground truncate max-w-xs">
+                  {fileName}
+                </p>
+                {storedFile && (
+                  <div className="text-xs text-muted-foreground">
+                    (saved)
+                  </div>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Upload a CSV file
@@ -92,14 +138,27 @@ const FileUpload = ({ label, fileType, onFileUploaded }: FileUploadProps) => {
             )}
           </div>
           
-          <Button 
-            onClick={handleUploadClick} 
-            className="mt-4 gap-2 transition-all duration-300 ease-in-out shadow-sm hover:shadow"
-            variant={isUploaded ? "outline" : "default"}
-          >
-            <Upload className="w-4 h-4" />
-            {isUploaded ? "Replace File" : "Upload File"}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleUploadClick} 
+              className="mt-4 gap-2 transition-all duration-300 ease-in-out shadow-sm hover:shadow"
+              variant={isUploaded ? "outline" : "default"}
+            >
+              <Upload className="w-4 h-4" />
+              {isUploaded ? "Replace File" : "Upload File"}
+            </Button>
+            
+            {isUploaded && onRemoveFile && (
+              <Button 
+                onClick={handleRemoveFile} 
+                className="mt-4 gap-2"
+                variant="destructive"
+              >
+                <Trash2 className="w-4 h-4" />
+                Remove
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,9 +1,11 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import SimulationForm from "@/components/SimulationForm";
 import SimulationView from "@/components/SimulationView";
-import { UploadedData, SimulationOptions } from "@/types";
+import { UploadedData, SimulationOptions, StoredFile } from "@/types";
 import { format } from "date-fns";
+import { saveFilesToStorage, loadFilesFromStorage } from "@/utils/fileStorage";
 
 const Index = () => {
   const [uploadedData, setUploadedData] = useState<UploadedData>({
@@ -22,11 +24,60 @@ const Index = () => {
   const [simulationData, setSimulationData] = useState<any | null>(null);
   const [showSimulation, setShowSimulation] = useState(false);
 
-  const handleFileUploaded = (data: any[], fileType: "maps" | "reservations") => {
-    setUploadedData((prev) => ({
-      ...prev,
-      [fileType]: data,
-    }));
+  // Load stored files on component mount
+  useEffect(() => {
+    const storedFiles = loadFilesFromStorage();
+    
+    if (storedFiles.mapsFile || storedFiles.reservationsFile) {
+      const newUploadedData: UploadedData = { 
+        maps: storedFiles.mapsFile?.data || null,
+        reservations: storedFiles.reservationsFile?.data || null,
+        mapsFile: storedFiles.mapsFile,
+        reservationsFile: storedFiles.reservationsFile
+      };
+      
+      setUploadedData(newUploadedData);
+      
+      const loadedFiles = [];
+      if (storedFiles.mapsFile) loadedFiles.push("maps");
+      if (storedFiles.reservationsFile) loadedFiles.push("reservations");
+      
+      toast.success(`Loaded saved ${loadedFiles.join(" and ")} files`);
+    }
+  }, []);
+
+  const handleFileUploaded = (data: any[], fileType: "maps" | "reservations", fileInfo?: StoredFile) => {
+    setUploadedData((prev) => {
+      const updatedData = {
+        ...prev,
+        [fileType]: data,
+      };
+      
+      // Store file information if provided
+      if (fileInfo) {
+        updatedData[`${fileType}File`] = fileInfo;
+      }
+      
+      // Save to localStorage
+      saveFilesToStorage(updatedData);
+      
+      return updatedData;
+    });
+  };
+  
+  const handleRemoveFile = (fileType: "maps" | "reservations") => {
+    setUploadedData((prev) => {
+      const updatedData = { ...prev };
+      
+      // Remove the file and its data
+      updatedData[fileType] = null;
+      delete updatedData[`${fileType}File`];
+      
+      // Save updated state to localStorage
+      saveFilesToStorage(updatedData);
+      
+      return updatedData;
+    });
   };
 
   const handleDateChange = (date: Date | undefined) => {
@@ -91,6 +142,7 @@ const Index = () => {
             simulationOptions={simulationOptions}
             selectedDate={selectedDate}
             onFileUploaded={handleFileUploaded}
+            onRemoveFile={handleRemoveFile}
             onDateChange={handleDateChange}
             onMealShiftChange={handleMealShiftChange}
             onRestaurantChange={handleRestaurantChange}
