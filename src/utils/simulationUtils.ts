@@ -104,6 +104,7 @@ export function prepareSimulationData(
         tables[tableId] = {
           table_id: tableId,
           max_capacity: parseInt(table.max, 10),
+          min_capacity: parseInt(table.min, 10),
           occupied: false,
           occupancy_log: []
         };
@@ -128,6 +129,8 @@ export function prepareSimulationData(
     const duration = parseInt(row.duration, 10) || 90;
     let creationDatetime = new Date(`${row.date_add} ${row.time_add}`);
     const reservationDatetime = new Date(`${row.date} ${row.time}`);
+    const statusLong = row.status_long;
+    const provenance = row.provenance;
 
     if (creationDatetime > reservationDatetime) {
       creationDatetime = new Date(reservationDatetime.getTime() - 1000);
@@ -139,7 +142,9 @@ export function prepareSimulationData(
       party_size: partySize,
       duration: duration,
       creation_datetime: creationDatetime,
-      reservation_datetime: reservationDatetime
+      reservation_datetime: reservationDatetime,
+      status_long: statusLong,
+      provenance: provenance,
     };
   });
 
@@ -156,7 +161,10 @@ export function prepareSimulationData(
           start_time: startTime,
           end_time: endTime,
           creation_datetime: reservation.creation_datetime,
-          reservation_datetime: reservation.reservation_datetime
+          reservation_datetime: reservation.reservation_datetime,
+          status_long: reservation.status_long,
+          party_size: reservation.party_size,
+          provenance: reservation.provenance,
         });
       }
     });
@@ -172,7 +180,10 @@ export function prepareSimulationData(
           start: log.start_time,
           duration: log.end_time - log.start_time,
           creation: log.creation_datetime,
-          reservation: log.reservation_datetime
+          reservation: log.reservation_datetime,
+          status_long: log.status_long,
+          partySize: log.party_size,
+          provenance: log.provenance,
         });
       } else {
         occupancyGroupsMap.get(key)!.table_ids.push(table.table_id);
@@ -184,6 +195,9 @@ export function prepareSimulationData(
   occupancyGroups.forEach(group => {
     group.advance = (group.reservation.getTime() - group.creation.getTime()) / (60 * 1000);
     group.creation_rel = (group.creation.getTime() - shiftStart.getTime()) / (60 * 1000);
+    group.totalCapacity = group.table_ids.reduce((sum, tableId) => {
+      return sum + (tables[tableId]?.max_capacity || 0);
+    }, 0);
   });
   occupancyGroups.sort((a, b) => a.creation.getTime() - b.creation.getTime());
   

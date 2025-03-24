@@ -12,6 +12,9 @@ export interface OccupancyEntry {
   end_time: number;
   creation_datetime: Date;
   reservation_datetime: Date;
+  status_long: string;
+  party_size: number;
+  provenance: string;
 }
 
 export interface Reservation {
@@ -21,6 +24,8 @@ export interface Reservation {
   duration: number;
   creation_datetime: Date;
   reservation_datetime: Date;
+  status_long: string;
+  provenance: string;
 }
 
 export interface OccupancyGroup {
@@ -31,6 +36,10 @@ export interface OccupancyGroup {
   reservation: Date;
   advance?: number;
   creation_rel?: number;
+  status_long: string;
+  partySize: number;
+  provenance: string;
+  totalCapacity?: number;
 }
 
 export interface SimulationState {

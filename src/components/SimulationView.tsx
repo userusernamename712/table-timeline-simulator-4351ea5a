@@ -357,7 +357,11 @@ const SimulationView = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Tables</TableHead>
+                      <TableHead>Match</TableHead>
+                      <TableHead>Total Capacity</TableHead>
                       <TableHead>Party Size</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Provenance</TableHead>
                       <TableHead>Time</TableHead>
                       <TableHead>Duration</TableHead>
                     </TableRow>
@@ -369,6 +373,9 @@ const SimulationView = ({
                         const table = simulationData.tables[id];
                         return sum + (table ? table.max_capacity : 0);
                       }, 0);
+                      const partySize = reservation.partySize;
+                      const statusLong = reservation.status_long;
+                      const provenance = reservation.provenance;
                       
                       return (
                         <TableRow key={index}>
@@ -381,7 +388,23 @@ const SimulationView = ({
                               ))}
                             </div>
                           </TableCell>
+                          <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                          {totalCapacity > partySize ?
+                           <span className="px-2 py-1 bg-primary/10 rounded-md text-xs bg-red-300">
+                              Imperfect
+                            </span>
+                           :
+                           <span className="px-2 py-1 bg-primary/10 rounded-md text-xs bg-green-300">
+                              Perfect
+                            </span>
+                            }
+                          </div>
+                          </TableCell>
                           <TableCell>{totalCapacity} people</TableCell>
+                          <TableCell>{partySize} people</TableCell>
+                          <TableCell>{statusLong}</TableCell>
+                          <TableCell>{provenance}</TableCell>
                           <TableCell>
                             {formatTime(reservation.start, simulationData.shiftStart)}
                           </TableCell>

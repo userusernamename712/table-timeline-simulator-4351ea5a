@@ -58,7 +58,29 @@ const ReservationDetails = ({ reservation, shiftStart }: ReservationDetailsProps
             </div>
           </div>
         </div>
-        
+
+        <div className="grid grid-cols-2 gap-4 border-t border-border/30 pt-4">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Party Size</p>
+              <p className="font-medium">{reservation.partySize} guests</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+              <Table className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Total Capacity</p>
+              <p className="font-medium">{reservation.totalCapacity} seats</p>
+            </div>
+          </div>
+        </div>
+
         <div className="border-t border-border/30 pt-4">
           <div className="flex items-start gap-2 text-sm">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -76,7 +98,7 @@ const ReservationDetails = ({ reservation, shiftStart }: ReservationDetailsProps
             </div>
           </div>
         </div>
-        
+
         <div className="border-t border-border/30 pt-4">
           <div className="flex items-center gap-2 text-sm">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">

@@ -184,6 +184,22 @@ const TimelineSimulation = ({
       minute: "2-digit",
     });
   };
+
+  const stats = state.occupancyGroups.reduce(
+    (acc, group) => {
+      if (group.creation_rel !== undefined && group.creation_rel <= state.currentTime) {
+        if (group.totalCapacity > group.partySize) {
+          acc.imperfect += 1;
+          acc.totalGap += (group.totalCapacity - group.partySize);
+        } else {
+          acc.perfect += 1;
+        }
+      }
+      return acc;
+    },
+    { perfect: 0, imperfect: 0, totalGap: 0 }
+  );
+  
   
 
   return (
@@ -237,6 +253,8 @@ const TimelineSimulation = ({
               <SelectItem value="2">2x</SelectItem>
               <SelectItem value="5">5x</SelectItem>
               <SelectItem value="10">10x</SelectItem>
+              <SelectItem value="100">100x</SelectItem>
+              <SelectItem value="1000">1000x</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -351,7 +369,10 @@ const TimelineSimulation = ({
                                 style={{
                                   left: `${(reservation.start * 100) / endTime}%`,
                                   width: `${(reservation.duration * 100) / endTime}%`,
-                                  backgroundColor: `hsl(${210 + (reservation.table_ids.length * 20)}, 100%, 70%)`,
+                                  backgroundColor: reservation.totalCapacity > reservation.partySize 
+                                    ? 'hsl(0, 100%, 60%)' // red
+                                    : 'hsl(120, 50%, 50%)' // green
+                                  
                                 }}
                                 onClick={() => handleReservationClick(reservation)}
                               >
@@ -366,6 +387,7 @@ const TimelineSimulation = ({
                                 <div>Duration: {reservation.duration} minutes</div>
                                 <div>Tables: {reservation.table_ids.join(", ")}</div>
                                 <div>Created: {formatDateTime(reservation.creation)}</div>
+                                <div>Status Long: {reservation.status_long}</div>
                               </div>
                             </TooltipContent>
                           </Tooltip>
@@ -380,27 +402,52 @@ const TimelineSimulation = ({
         </div>
         
         <div>
-          {state.selectedReservation ? (
-            <ReservationDetails
-              reservation={state.selectedReservation}
-              shiftStart={shiftStart}
-            />
-          ) : (
-            <div className="glass-card border-border/30 shadow-md p-8 flex flex-col items-center justify-center h-[300px] text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Utensils className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="font-medium text-lg mb-2">No Reservation Selected</h3>
-              <p className="text-muted-foreground text-sm max-w-xs">
-                Click on any reservation in the timeline to view its details
-              </p>
-              <Button onClick={handleFullReset} variant="outline" className="mt-4">
-                <RotateCcw className="mr-2 h-4 w-4" />
-                New Simulation
-              </Button>
-            </div>
-          )}
-        </div>
+  {state.selectedReservation ? (
+    <ReservationDetails
+      reservation={state.selectedReservation}
+      shiftStart={shiftStart}
+    />
+  ) : (
+    <div className="glass-card border-border/30 shadow-md p-8 flex flex-col items-center justify-center h-[300px] text-center">
+      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+        <Utensils className="w-8 h-8 text-primary" />
+      </div>
+      <h3 className="font-medium text-lg mb-2">No Reservation Selected</h3>
+      <p className="text-muted-foreground text-sm max-w-xs">
+        Click on any reservation in the timeline to view its details
+      </p>
+      <Button onClick={handleFullReset} variant="outline" className="mt-4">
+        <RotateCcw className="mr-2 h-4 w-4" />
+        New Simulation
+      </Button>
+    </div>
+  )}
+
+  <div className="glass-card p-4 shadow-md mt-4 border-border/30">
+    <div className="flex flex-col gap-2 text-sm">
+      <div className="flex justify-between items-center">
+        <span className="font-medium"> 
+          <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(120, 50%, 50%)' }}></span> 
+          Perfect matches
+        </span>
+        <span className="font-medium text-primary">{stats.perfect}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="font-medium">
+          <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(0, 100%, 60%)' }}></span> 
+          Imperfect matches
+        </span>
+        <span className="font-medium text-primary">{stats.imperfect}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="font-medium">Total capacity gap</span>
+        <span className="font-medium text-primary">{stats.totalGap}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
       </div>
     </div>
   );
