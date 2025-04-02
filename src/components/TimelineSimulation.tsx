@@ -15,6 +15,7 @@ import {
   ChevronRightCircle,
   Settings,
   Utensils,
+  Map,
 } from "lucide-react";
 import {
   Select,
@@ -30,6 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import ReservationDetails from "./ReservationDetails";
+import { Badge } from "@/components/ui/badge";
 
 interface TimelineSimulationProps {
   tables: Record<number, Table>;
@@ -185,6 +187,26 @@ const TimelineSimulation = ({
     });
   };
 
+  // Get active zones (zones with at least one table that has reservations)
+  const getActiveZones = () => {
+    const activeZones = new Set<string>();
+    
+    // Loop through all visible occupancy groups
+    state.occupancyGroups.forEach(group => {
+      if (group.creation_rel !== undefined && group.creation_rel <= state.currentTime) {
+        // For each table in this reservation, get the zone
+        group.table_ids.forEach(tableId => {
+          const table = state.tables[tableId];
+          if (table && table.zone_id) {
+            activeZones.add(table.zone_id);
+          }
+        });
+      }
+    });
+    
+    return Array.from(activeZones).sort();
+  };
+
   const stats = state.occupancyGroups.reduce(
     (acc, group) => {
       if (group.creation_rel !== undefined && group.creation_rel <= state.currentTime) {
@@ -200,7 +222,7 @@ const TimelineSimulation = ({
     { perfect: 0, imperfect: 0, totalGap: 0 }
   );
   
-  
+  const activeZones = getActiveZones();
 
   return (
     <div className="flex flex-col h-full animate-fade-in">
@@ -345,13 +367,16 @@ const TimelineSimulation = ({
                     key={table.table_id}
                     className="timeline-row flex px-4 py-3 border-b border-border/30"
                   >
-                    <div className="w-[150px] flex items-center">
-                      <div className="mr-2 h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-[150px] flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-xs font-medium text-primary">
                           {table.max_capacity}
                         </span>
                       </div>
-                      <span className="font-medium">Table {table.table_id} in zone {table.zone_id}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">Table {table.table_id}</span>
+                        <Badge variant="outline" className="text-xs">Zone {table.zone_id}</Badge>
+                      </div>
                     </div>
                     
                     <div className="flex-1 relative min-h-[30px]">
@@ -402,52 +427,70 @@ const TimelineSimulation = ({
         </div>
         
         <div>
-  {state.selectedReservation ? (
-    <ReservationDetails
-      reservation={state.selectedReservation}
-      shiftStart={shiftStart}
-    />
-  ) : (
-    <div className="glass-card border-border/30 shadow-md p-8 flex flex-col items-center justify-center h-[300px] text-center">
-      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-        <Utensils className="w-8 h-8 text-primary" />
-      </div>
-      <h3 className="font-medium text-lg mb-2">No Reservation Selected</h3>
-      <p className="text-muted-foreground text-sm max-w-xs">
-        Click on any reservation in the timeline to view its details
-      </p>
-      <Button onClick={handleFullReset} variant="outline" className="mt-4">
-        <RotateCcw className="mr-2 h-4 w-4" />
-        New Simulation
-      </Button>
-    </div>
-  )}
+          {state.selectedReservation ? (
+            <ReservationDetails
+              reservation={state.selectedReservation}
+              shiftStart={shiftStart}
+            />
+          ) : (
+            <div className="glass-card border-border/30 shadow-md p-8 flex flex-col items-center justify-center h-[300px] text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Utensils className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">No Reservation Selected</h3>
+              <p className="text-muted-foreground text-sm max-w-xs">
+                Click on any reservation in the timeline to view its details
+              </p>
+              <Button onClick={handleFullReset} variant="outline" className="mt-4">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                New Simulation
+              </Button>
+            </div>
+          )}
 
-  <div className="glass-card p-4 shadow-md mt-4 border-border/30">
-    <div className="flex flex-col gap-2 text-sm">
-      <div className="flex justify-between items-center">
-        <span className="font-medium"> 
-          <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(120, 50%, 50%)' }}></span> 
-          Perfect matches
-        </span>
-        <span className="font-medium text-primary">{stats.perfect}</span>
-      </div>
-      <div className="flex justify-between items-center">
-        <span className="font-medium">
-          <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(0, 100%, 60%)' }}></span> 
-          Imperfect matches
-        </span>
-        <span className="font-medium text-primary">{stats.imperfect}</span>
-      </div>
-      <div className="flex justify-between items-center">
-        <span className="font-medium">Total capacity gap</span>
-        <span className="font-medium text-primary">{stats.totalGap}</span>
-      </div>
-    </div>
-  </div>
-</div>
+          <div className="glass-card p-4 shadow-md mt-4 border-border/30">
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="font-medium"> 
+                  <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(120, 50%, 50%)' }}></span> 
+                  Perfect matches
+                </span>
+                <span className="font-medium text-primary">{stats.perfect}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">
+                  <span className="inline-block w-3 h-3 rounded-full mr-1" style={{ backgroundColor: 'hsl(0, 100%, 60%)' }}></span> 
+                  Imperfect matches
+                </span>
+                <span className="font-medium text-primary">{stats.imperfect}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Total capacity gap</span>
+                <span className="font-medium text-primary">{stats.totalGap}</span>
+              </div>
+            </div>
+          </div>
 
-
+          {/* Active Zones List */}
+          <div className="glass-card p-4 shadow-md mt-4 border-border/30">
+            <div className="flex items-center mb-2">
+              <Map className="h-4 w-4 mr-2 text-primary" />
+              <h4 className="font-medium">Active Zones</h4>
+            </div>
+            
+            {activeZones.length > 0 ? (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {activeZones.map(zone => (
+                  <Badge key={zone} className="bg-primary/10 text-primary hover:bg-primary/20">
+                    Zone {zone}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No active zones at this time</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
