@@ -11,6 +11,10 @@ export const RESTAURANT_IDS = [
   "restaurante-saonacasinodeagricultura",
   "restaurante-saona-epicentre-sagunto",
   "restaurante-saona-viveros",
+  "restaurante-saona-tablas",
+  "restaurante-saonabalboa",
+  "restaurante-tagomagosalustiano",
+  "restaurante-saonacondesa",
 ];
 
 export const CONFIRMED_RESERVATION_STATUSES = [
@@ -106,7 +110,8 @@ export function prepareSimulationData(
           max_capacity: parseInt(table.max, 10),
           min_capacity: parseInt(table.min, 10),
           occupied: false,
-          occupancy_log: []
+          occupancy_log: [],
+          zone_id: table.id_zone,
         };
       });
     } catch (e) {

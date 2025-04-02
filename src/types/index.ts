@@ -5,6 +5,7 @@ export interface Table {
   min_capacity?: number;
   occupied: boolean;
   occupancy_log: OccupancyEntry[];
+  zone_id: string;
 }
 
 export interface OccupancyEntry {
@@ -40,6 +41,7 @@ export interface OccupancyGroup {
   partySize: number;
   provenance: string;
   totalCapacity?: number;
+  zone_id?: string;
 }
 
 export interface SimulationState {

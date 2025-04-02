@@ -351,7 +351,7 @@ const TimelineSimulation = ({
                           {table.max_capacity}
                         </span>
                       </div>
-                      <span className="font-medium">Table {table.table_id}</span>
+                      <span className="font-medium">Table {table.table_id} in zone {table.zone_id}</span>
                     </div>
                     
                     <div className="flex-1 relative min-h-[30px]">

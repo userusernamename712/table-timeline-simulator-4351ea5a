@@ -246,6 +246,7 @@ const SimulationView = ({
                           <TableHead>Table ID</TableHead>
                           <TableHead>Min Capacity</TableHead>
                           <TableHead>Max Capacity</TableHead>
+                          <TableHead>Zone</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
@@ -260,6 +261,7 @@ const SimulationView = ({
                               <TableCell>Table {table.table_id}</TableCell>
                               <TableCell>{table.min_capacity || "-"}</TableCell>
                               <TableCell>{table.max_capacity}</TableCell>
+                              <TableCell>{table.zone_id}</TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs ${
                                   table.occupied ? 
